@@ -686,11 +686,31 @@ Object.assign(AST.actions, {
   saveNow() { AST.save.save(true); },
   expSave() {
     const str = AST.save.exportStr();
+    const id = 'exp_' + AST.u.uid();
     AST.modal.show({
       title: '📤 Экспорт сохранения',
-      body: `<p class="small muted">Скопируйте код и сохраните в надёжном месте:</p>
-        <textarea class="input" style="width:100%;height:120px;user-select:all" readonly onclick="this.select()">${str}</textarea>`,
-      buttons: [{ label: 'Готово', primary: true }],
+      body: `<p class="small muted">Нажмите «Скопировать» и перешлите код себе (например, в «Избранное» Telegram).
+        На другом устройстве: Настройки → Импорт → вставить код.</p>
+        <textarea id="${id}" class="input" style="width:100%;height:120px;user-select:all" readonly onclick="this.select()">${str}</textarea>`,
+      buttons: [
+        { label: '📋 Скопировать код', primary: true, onClick: () => {
+          const doneToast = () => AST.ui.toast('📋', 'Код скопирован!', 'Теперь перешлите его себе на другое устройство', 'ok');
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(str).then(doneToast).catch(() => {
+              AST.ui.toast('⚠️', 'Не удалось скопировать', 'Выделите код в окне вручную и скопируйте', 'warn');
+            });
+          } else {
+            const tmp = document.createElement('textarea');
+            tmp.value = str;
+            document.body.appendChild(tmp);
+            tmp.select();
+            document.execCommand('copy');
+            tmp.remove();
+            doneToast();
+          }
+        } },
+        { label: 'Закрыть' },
+      ],
     });
   },
   impSave() {
