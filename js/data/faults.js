@@ -1,0 +1,187 @@
+/* ============================================================
+   ДАННЫЕ: неисправности (133 вида, 14 категорий)
+   [id, название, категория, работа $, длит. мин, сложн. 1–5, детали[], частота, тег?]
+   тег: 'diesel' | 'turbo' | 'ev' — только для машин с этим тегом
+   ============================================================ */
+'use strict';
+
+AST.data.faultCats = {
+  to:       { name: 'ТО и жидкости', ico: '🛢️' },
+  brakes:   { name: 'Тормоза',       ico: '🛑' },
+  susp:     { name: 'Подвеска',      ico: '🛞' },
+  engine:   { name: 'Двигатель',     ico: '⚙️' },
+  cooling:  { name: 'Охлаждение',    ico: '🌡️' },
+  trans:    { name: 'Трансмиссия',   ico: '🔩' },
+  exhaust:  { name: 'Выхлоп',        ico: '💨' },
+  fuel:     { name: 'Топливная',     ico: '⛽' },
+  electric: { name: 'Электрика',     ico: '⚡' },
+  climate:  { name: 'Климат',        ico: '❄️' },
+  steering: { name: 'Рулевое',       ico: '🎯' },
+  body:     { name: 'Кузов',         ico: '🚗' },
+  tires:    { name: 'Шины',          ico: '⭕' },
+  ev:       { name: 'Высоковольтка', ico: '🔋' },
+};
+
+/* Категории, доступные электромобилям (плюс отдельные исключения в clients.js) */
+AST.data.evCats = ['brakes', 'susp', 'electric', 'climate', 'steering', 'body', 'tires', 'ev'];
+
+AST.data.faults = [
+  // ---------- ТО и жидкости (12)
+  ['oil_change',     'Замена масла и фильтра',          'to', 35, 30, 1, ['oil', 'oil_filter'], 12],
+  ['air_filter_r',   'Замена воздушного фильтра',       'to', 15, 15, 1, ['air_filter'], 8],
+  ['cabin_filter_r', 'Замена салонного фильтра',        'to', 20, 20, 1, ['cabin_filter'], 6],
+  ['fuel_filter_r',  'Замена топливного фильтра',       'to', 30, 35, 2, ['fuel_filter'], 5],
+  ['spark_r',        'Замена свечей зажигания',         'to', 40, 40, 2, ['spark_plugs'], 7],
+  ['glow_r',         'Замена свечей накала',            'to', 50, 45, 2, ['glow_plugs'], 3, 'diesel'],
+  ['coolant_r',      'Замена антифриза',                'to', 35, 40, 2, ['coolant'], 5],
+  ['brake_fluid_r',  'Замена тормозной жидкости',       'to', 30, 35, 2, ['brake_fluid'], 4],
+  ['atf_r',          'Замена масла АКПП',               'to', 60, 50, 2, ['atf'], 4],
+  ['gear_oil_r',     'Замена масла МКПП',               'to', 45, 45, 2, ['gear_oil'], 3],
+  ['full_to',        'Полное ТО',                       'to', 120, 90, 2, ['oil', 'oil_filter', 'air_filter'], 6],
+  ['adblue_r',       'Заправка AdBlue',                 'to', 20, 15, 1, ['adblue'], 2, 'diesel'],
+  // ---------- Тормоза (10)
+  ['pads_f',         'Замена передних колодок',         'brakes', 45, 40, 1, ['brake_pads'], 10],
+  ['pads_r_',        'Замена задних колодок',           'brakes', 40, 40, 1, ['brake_pads_r'], 7],
+  ['discs_f',        'Замена передних дисков',          'brakes', 70, 60, 2, ['brake_discs'], 6],
+  ['discs_r_',       'Замена задних дисков',            'brakes', 65, 60, 2, ['brake_discs_r'], 4],
+  ['caliper_r',      'Ремонт суппорта',                 'brakes', 90, 70, 3, ['brake_caliper'], 4],
+  ['brake_hose_r',   'Замена тормозного шланга',        'brakes', 35, 40, 2, ['brake_hose'], 3],
+  ['abs_sensor_r',   'Замена датчика ABS',              'brakes', 50, 45, 2, ['abs_sensor'], 4],
+  ['abs_unit_r',     'Замена блока ABS',                'brakes', 220, 150, 4, ['abs_unit'], 2],
+  ['handbrake_r',    'Ремонт стояночного тормоза',      'brakes', 30, 30, 1, ['handbrake_cable'], 3],
+  ['brake_bleed',    'Прокачка тормозной системы',      'brakes', 40, 35, 1, ['brake_fluid'], 4],
+  // ---------- Подвеска (12)
+  ['shock_f_r',      'Замена передних амортизаторов',   'susp', 90, 80, 2, ['shock_f'], 7],
+  ['shock_r_r',      'Замена задних амортизаторов',     'susp', 80, 75, 2, ['shock_r'], 5],
+  ['spring_r',       'Замена пружины',                  'susp', 60, 70, 2, ['spring'], 4],
+  ['stab_link_r',    'Замена стоек стабилизатора',      'susp', 30, 30, 1, ['stab_link'], 8],
+  ['arm_r',          'Замена рычага подвески',          'susp', 85, 80, 3, ['control_arm'], 5],
+  ['ball_joint_r',   'Замена шаровой опоры',            'susp', 50, 50, 2, ['ball_joint'], 5],
+  ['silent_r',       'Замена сайлентблоков',            'susp', 70, 90, 3, ['silent_block'], 5],
+  ['bearing_r',      'Замена ступичного подшипника',    'susp', 65, 70, 3, ['wheel_bearing'], 5],
+  ['cv_r',           'Замена ШРУСа',                    'susp', 80, 80, 3, ['cv_joint'], 4],
+  ['cv_boot_r',      'Замена пыльника ШРУСа',           'susp', 35, 40, 2, ['cv_boot'], 4],
+  ['align',          'Сход-развал',                     'susp', 60, 45, 2, [], 8],
+  ['air_susp_r',     'Ремонт пневмоподвески',           'susp', 260, 180, 5, ['air_spring'], 1],
+  // ---------- Двигатель (16)
+  ['serp_belt_r',    'Замена приводного ремня',         'engine', 35, 30, 1, ['serp_belt'], 5],
+  ['valve_gasket_r', 'Прокладка клапанной крышки',      'engine', 55, 60, 2, ['valve_gasket'], 4],
+  ['oil_leak',       'Устранение течи масла',           'engine', 90, 90, 3, ['valve_gasket'], 5],
+  ['mount_r',        'Замена опоры двигателя',          'engine', 60, 60, 2, ['engine_mount'], 4],
+  ['pcv_r',          'Замена клапана PCV',              'engine', 45, 40, 2, ['pcv_valve'], 3],
+  ['vvt_r',          'Замена клапана VVT',              'engine', 110, 80, 3, ['vvt_valve'], 3],
+  ['timing_belt_r',  'Замена ремня ГРМ',                'engine', 180, 180, 4, ['timing_belt', 'water_pump'], 4],
+  ['timing_chain_r', 'Замена цепи ГРМ',                 'engine', 260, 240, 4, ['timing_chain'], 3],
+  ['oil_pump_r',     'Замена масляного насоса',         'engine', 180, 150, 4, ['oil_pump'], 2],
+  ['head_gasket_r',  'Замена прокладки ГБЦ',            'engine', 380, 360, 5, ['head_gasket'], 2],
+  ['head_rebuild',   'Капремонт головки блока',         'engine', 650, 480, 5, ['cylinder_head'], 1],
+  ['rings_r',        'Замена поршневых колец',          'engine', 540, 420, 5, ['piston_rings'], 1],
+  ['turbo_r',        'Замена турбины',                  'engine', 320, 240, 4, ['turbo'], 3, 'turbo'],
+  ['intercooler_r',  'Замена интеркулера',              'engine', 140, 90, 3, ['intercooler'], 2, 'turbo'],
+  ['engine_overhaul','Капитальный ремонт двигателя',    'engine', 1500, 720, 5, ['piston_rings', 'head_gasket'], 1],
+  ['engine_swap',    'Замена двигателя',                'engine', 2200, 600, 5, ['engine_block'], 0.5],
+  // ---------- Охлаждение (6)
+  ['thermostat_r',   'Замена термостата',               'cooling', 50, 45, 2, ['thermostat'], 5],
+  ['water_pump_r',   'Замена помпы',                    'cooling', 90, 90, 3, ['water_pump'], 4],
+  ['radiator_r',     'Замена радиатора',                'cooling', 120, 100, 3, ['radiator'], 4],
+  ['rad_hose_r',     'Замена патрубков',                'cooling', 40, 40, 2, ['rad_hose'], 4],
+  ['fan_r',          'Замена вентилятора радиатора',    'cooling', 90, 70, 3, ['rad_fan'], 3],
+  ['exp_tank_r',     'Замена расширительного бачка',    'cooling', 30, 25, 1, ['exp_tank'], 3],
+  // ---------- Трансмиссия (9)
+  ['clutch_r',       'Замена сцепления',                'trans', 300, 240, 4, ['clutch_kit'], 4],
+  ['flywheel_r',     'Замена маховика',                 'trans', 340, 220, 4, ['flywheel'], 2],
+  ['gearbox_leak',   'Устранение течи КПП',             'trans', 120, 100, 3, ['gear_oil'], 3],
+  ['driveshaft_r',   'Замена приводного вала',          'trans', 160, 120, 3, ['driveshaft'], 3],
+  ['u_joint_r',      'Замена крестовины кардана',       'trans', 70, 70, 3, ['u_joint'], 2],
+  ['diff_r',         'Ремонт дифференциала',            'trans', 260, 200, 4, ['diff_kit'], 2],
+  ['mechatronic_r',  'Замена мехатроника',              'trans', 420, 240, 5, ['mechatronic'], 1.5],
+  ['torque_conv_r',  'Замена гидротрансформатора',      'trans', 480, 300, 5, ['torque_conv'], 1.5],
+  ['gearbox_swap',   'Замена коробки передач',          'trans', 900, 480, 5, ['gearbox'], 1],
+  // ---------- Выхлоп (6)
+  ['muffler_r',      'Замена глушителя',                'exhaust', 80, 70, 2, ['muffler'], 4],
+  ['pipe_r',         'Ремонт выхлопной трубы',          'exhaust', 50, 50, 2, ['exhaust_pipe'], 4],
+  ['lambda_r',       'Замена лямбда-зонда',             'exhaust', 60, 50, 2, ['lambda'], 4],
+  ['catalyst_r',     'Замена катализатора',             'exhaust', 180, 120, 3, ['catalyst'], 3],
+  ['egr_r',          'Чистка и замена клапана EGR',     'exhaust', 130, 100, 3, ['egr'], 3],
+  ['dpf_r',          'Замена сажевого фильтра',         'exhaust', 220, 120, 3, ['dpf'], 2, 'diesel'],
+  // ---------- Топливная (7)
+  ['throttle_clean', 'Чистка дроссельной заслонки',     'fuel', 50, 40, 2, [], 4],
+  ['injectors_clean','Чистка форсунок',                 'fuel', 90, 80, 3, [], 4],
+  ['fuel_pump_r',    'Замена топливного насоса',        'fuel', 140, 110, 3, ['fuel_pump'], 4],
+  ['throttle_r',     'Замена дроссельной заслонки',     'fuel', 150, 90, 3, ['throttle'], 2],
+  ['fuel_line_r',    'Замена топливной магистрали',     'fuel', 70, 80, 3, ['fuel_line'], 2],
+  ['injectors_r',    'Замена форсунок',                 'fuel', 260, 160, 4, ['injectors'], 2],
+  ['hp_pump_r',      'Замена ТНВД',                     'fuel', 420, 240, 5, ['hp_pump'], 1.5, 'diesel'],
+  // ---------- Электрика (17)
+  ['battery_r',      'Замена аккумулятора',             'electric', 25, 15, 1, ['battery'], 8],
+  ['fuse_r',         'Замена предохранителей',          'electric', 15, 10, 1, ['fuse_kit'], 4],
+  ['bulbs_r',        'Замена ламп',                     'electric', 20, 15, 1, ['bulb_kit'], 6],
+  ['horn_r',         'Замена звукового сигнала',        'electric', 25, 20, 1, ['horn'], 2],
+  ['taillight_r',    'Замена заднего фонаря',           'electric', 50, 40, 1, ['taillight'], 3],
+  ['headlight_r',    'Замена фары',                     'electric', 70, 50, 2, ['headlight'], 4],
+  ['crank_sensor_r', 'Замена датчика коленвала',        'electric', 60, 50, 2, ['crank_sensor'], 4],
+  ['maf_r',          'Замена датчика расхода воздуха',  'electric', 70, 45, 2, ['maf'], 3],
+  ['map_r',          'Замена датчика MAP',              'electric', 50, 40, 2, ['map_sensor'], 3],
+  ['window_r',       'Ремонт стеклоподъёмника',         'electric', 80, 70, 2, ['window_reg'], 3],
+  ['wiper_motor_r',  'Замена мотора дворников',         'electric', 75, 60, 2, ['wiper_motor'], 2],
+  ['parktronic_r',   'Замена парктроника',              'electric', 55, 45, 2, ['park_sensor'], 2],
+  ['starter_r',      'Замена стартера',                 'electric', 130, 100, 3, ['starter'], 4],
+  ['alternator_r',   'Замена генератора',               'electric', 150, 110, 3, ['alternator'], 4],
+  ['central_lock_r', 'Ремонт центрального замка',       'electric', 90, 80, 3, ['central_lock'], 2],
+  ['wiring_r',       'Ремонт проводки',                 'electric', 180, 160, 4, ['wiring'], 3],
+  ['ecu_flash',      'Прошивка ЭБУ',                    'electric', 160, 90, 4, [], 2],
+  ['ecu_r',          'Замена блока ЭБУ',                'electric', 380, 180, 5, ['ecu'], 1.5],
+  // ---------- Климат (6)
+  ['ac_refill',      'Заправка кондиционера',           'climate', 60, 40, 2, ['refrigerant'], 6],
+  ['blower_r',       'Замена мотора печки',             'climate', 90, 70, 2, ['blower'], 3],
+  ['ac_leak',        'Поиск и устранение утечки фреона','climate', 80, 70, 3, ['ac_hose'], 3],
+  ['condenser_r',    'Замена конденсатора',             'climate', 150, 120, 3, ['condenser'], 2],
+  ['heater_core_r',  'Замена радиатора печки',          'climate', 180, 160, 4, ['heater_core'], 2],
+  ['ac_compressor_r','Замена компрессора кондиционера', 'climate', 280, 180, 4, ['ac_compressor'], 2],
+  // ---------- Рулевое (7)
+  ['ps_fluid_r',     'Замена жидкости ГУР',             'steering', 35, 30, 1, ['psf'], 3],
+  ['tie_end_r',      'Замена наконечника тяги',         'steering', 40, 40, 1, ['tie_rod_end'], 5],
+  ['tie_rod_r',      'Замена рулевой тяги',             'steering', 55, 50, 2, ['tie_rod'], 4],
+  ['ps_pump_r',      'Замена насоса ГУР',               'steering', 170, 120, 3, ['ps_pump'], 3],
+  ['eps_r',          'Ремонт электроусилителя',         'steering', 320, 180, 4, ['eps_unit'], 1.5],
+  ['column_r',       'Замена рулевой колонки',          'steering', 240, 180, 4, ['steering_column'], 1],
+  ['rack_r',         'Замена рулевой рейки',            'steering', 340, 240, 4, ['steering_rack'], 2],
+  // ---------- Кузов (11)
+  ['wipers_r',       'Замена щёток дворников',          'body', 12, 10, 1, ['wiper_blades'], 7],
+  ['handle_r',       'Замена ручки двери',              'body', 35, 30, 1, ['door_handle'], 3],
+  ['mirror_r',       'Замена бокового зеркала',         'body', 50, 40, 1, ['mirror'], 3],
+  ['polish',         'Полировка кузова',                'body', 90, 90, 2, ['polish_kit'], 4],
+  ['rust_treat',     'Антикоррозийная обработка',       'body', 120, 120, 2, ['rust_kit'], 3],
+  ['bumper_r',       'Замена бампера',                  'body', 140, 100, 2, ['bumper'], 3],
+  ['dent_repair',    'Удаление вмятин без покраски',    'body', 160, 150, 3, [], 4],
+  ['windshield_r',   'Замена лобового стекла',          'body', 180, 120, 3, ['windshield'], 3],
+  ['fender_r',       'Замена крыла',                    'body', 160, 120, 3, ['fender'], 2],
+  ['hood_r',         'Замена капота',                   'body', 200, 120, 3, ['hood_part'], 1.5],
+  ['full_paint',     'Покраска элемента кузова',        'body', 280, 240, 4, ['paint_kit'], 3],
+  // ---------- Шины (6)
+  ['puncture',       'Ремонт прокола',                  'tires', 25, 20, 1, [], 6],
+  ['tire_swap',      'Сезонная замена шин',             'tires', 40, 35, 1, ['valve_kit'], 8],
+  ['tpms_r',         'Замена датчика давления',         'tires', 40, 30, 2, ['tpms'], 3],
+  ['tire_new_eco',   'Новые шины (эконом)',             'tires', 60, 45, 1, ['tires_eco'], 4],
+  ['tire_new_mid',   'Новые шины (стандарт)',           'tires', 70, 45, 2, ['tires_mid'], 3],
+  ['tire_new_prem',  'Новые шины (премиум)',            'tires', 90, 50, 2, ['tires_prem'], 2],
+  // ---------- Электромобили (8)
+  ['ev_diag',        'Диагностика высоковольтной сети', 'ev', 120, 60, 3, [], 6, 'ev'],
+  ['ev_cool_r',      'Контур охлаждения батареи',       'ev', 140, 90, 3, ['ev_coolant'], 3, 'ev'],
+  ['ev_charger_r',   'Замена порта зарядки',            'ev', 180, 90, 3, ['ev_charger'], 3, 'ev'],
+  ['ev_dcdc_r',      'Замена DC-DC преобразователя',    'ev', 280, 130, 4, ['ev_dcdc'], 2, 'ev'],
+  ['ev_bms_r',       'Замена блока BMS',                'ev', 320, 150, 4, ['ev_bms'], 2, 'ev'],
+  ['ev_cable_r',     'Замена высоковольтных кабелей',   'ev', 220, 120, 4, ['hv_cable'], 2, 'ev'],
+  ['ev_inverter_r',  'Замена инвертора',                'ev', 520, 240, 5, ['ev_inverter'], 2, 'ev'],
+  ['ev_module_r',    'Замена модуля батареи',           'ev', 650, 300, 5, ['ev_module'], 3, 'ev'],
+  ['ev_motor_r',     'Замена электромотора',            'ev', 900, 360, 5, ['ev_motor'], 1, 'ev'],
+].map(([id, name, cat, labor, dur, diff, parts, weight, tag]) => ({
+  id, name, cat, labor, dur, diff, parts, weight,
+  tag: tag || null,
+  minSkill: [0, 1, 2, 4, 6, 8][diff],          // минимальный навык механика без штрафов
+  xp: Math.round(diff * 5 + dur / 12),          // опыт за успешный ремонт
+  errBase: diff * 0.02,                          // базовый шанс ошибки
+}));
+
+AST.data.faultById = {};
+AST.data.faults.forEach((f) => { AST.data.faultById[f.id] = f; });

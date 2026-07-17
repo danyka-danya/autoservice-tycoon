@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Автосервис: Империя</title>
+<meta name="theme-color" content="#0b0f17">
+<script>
+/* PWA-манифест только на http(s): на file:// браузер ругается в консоль CORS-ошибками */
+if (location.protocol !== 'file:') {
+  document.write('<link rel="manifest" href="manifest.json">');
+  document.write('<link rel="apple-touch-icon" href="assets/icon.svg">');
+}
+</script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-theme="dark" data-accent="cyan">
+
+<!-- ============ ЗАГРУЗОЧНЫЙ ЭКРАН ============ -->
+<div id="boot-screen">
+  <div class="boot-logo">🔧</div>
+  <div class="boot-title">Автосервис: Империя</div>
+  <div class="boot-sub">от гаража до международной сети</div>
+  <div class="boot-bar"><div class="boot-bar-fill" id="boot-bar-fill"></div></div>
+</div>
+
+<!-- ============ ОСНОВНОЙ КАРКАС ============ -->
+<div id="app" class="hidden">
+
+  <!-- Верхняя панель (HUD) -->
+  <header id="hud">
+    <div class="hud-brand" id="hud-brand">
+      <span class="hud-logo" id="hud-logo">🔧</span>
+      <span class="hud-brand-col">
+        <span class="hud-name" id="hud-name">Гараж без имени</span>
+        <span class="hud-tier" id="hud-tier"></span>
+      </span>
+    </div>
+    <div class="hud-stats">
+      <div class="hud-stat hud-money" id="hud-money-wrap" title="Баланс">
+        <span class="hud-ico">💵</span><span id="hud-money">0</span>
+      </div>
+      <div class="hud-stat" id="hud-net-wrap">
+        <span class="hud-ico">📊</span><span id="hud-net">$0</span>
+      </div>
+      <div class="hud-stat" id="hud-rate-wrap">
+        <span class="hud-ico">⚡</span><span id="hud-rate">$0/ч</span>
+      </div>
+      <div class="hud-stat" title="Репутация">
+        <span class="hud-ico">⭐</span><span id="hud-rep">10</span>
+      </div>
+      <div class="hud-stat" title="Очки исследований">
+        <span class="hud-ico">🔬</span><span id="hud-rp">0</span>
+      </div>
+      <div class="hud-stat hud-owner" id="hud-owner" title="Уровень владельца">
+        <span class="hud-ico">👑</span><span id="hud-lvl">1</span>
+        <div class="hud-xpbar"><div id="hud-xpfill"></div></div>
+      </div>
+    </div>
+    <div class="hud-time">
+      <button class="bell-btn" id="hud-bell" title="Уведомления">
+        🔔<span class="bell-badge hidden" id="bell-badge"></span>
+      </button>
+      <div class="hud-clockbox">
+        <span id="hud-weather" title="Погода">☀️</span>
+        <span id="hud-clock">08:00</span>
+      </div>
+      <div class="hud-daybox">
+        <span id="hud-day">День 1</span>
+        <span id="hud-season" class="hud-season">Весна</span>
+      </div>
+      <div class="hud-speed" id="hud-speed">
+        <button class="spd-btn" data-spd="0" title="Пауза">⏸</button>
+        <button class="spd-btn active" data-spd="1" title="Обычная скорость">▶</button>
+        <button class="spd-btn" data-spd="2" title="Скорость ×2">▶▶</button>
+        <button class="spd-btn" data-spd="4" title="Скорость ×4">▶▶▶</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Навигация по вкладкам -->
+  <nav id="tabs">
+    <button class="tab-btn active" data-tab="garage"><span class="tab-ico">🏭</span><span class="tab-txt">Гараж</span><span class="tab-badge hidden" data-badge="garage"></span></button>
+    <button class="tab-btn" data-tab="staff"><span class="tab-ico">👥</span><span class="tab-txt">Персонал</span><span class="tab-badge hidden" data-badge="staff"></span></button>
+    <button class="tab-btn" data-tab="stock"><span class="tab-ico">📦</span><span class="tab-txt">Склад</span><span class="tab-badge hidden" data-badge="stock"></span></button>
+    <button class="tab-btn" data-tab="upgrades"><span class="tab-ico">⭐</span><span class="tab-txt">Улучшения</span><span class="tab-badge hidden" data-badge="upgrades"></span></button>
+    <button class="tab-btn" data-tab="research"><span class="tab-ico">🔬</span><span class="tab-txt">Наука</span><span class="tab-badge hidden" data-badge="research"></span></button>
+    <button class="tab-btn" data-tab="finance"><span class="tab-ico">💰</span><span class="tab-txt">Финансы</span><span class="tab-badge hidden" data-badge="finance"></span></button>
+    <button class="tab-btn" data-tab="missions"><span class="tab-ico">🎯</span><span class="tab-txt">Миссии</span><span class="tab-badge hidden" data-badge="missions"></span></button>
+    <button class="tab-btn" data-tab="stats"><span class="tab-ico">📊</span><span class="tab-txt">Статистика</span><span class="tab-badge hidden" data-badge="stats"></span></button>
+    <button class="tab-btn" data-tab="settings"><span class="tab-ico">⚙️</span><span class="tab-txt">Настройки</span><span class="tab-badge hidden" data-badge="settings"></span></button>
+  </nav>
+
+  <!-- Контент вкладок -->
+  <main id="panels">
+    <section class="panel active" id="tab-garage"></section>
+    <section class="panel" id="tab-staff"></section>
+    <section class="panel" id="tab-stock"></section>
+    <section class="panel" id="tab-upgrades"></section>
+    <section class="panel" id="tab-research"></section>
+    <section class="panel" id="tab-finance"></section>
+    <section class="panel" id="tab-missions"></section>
+    <section class="panel" id="tab-stats"></section>
+    <section class="panel" id="tab-settings"></section>
+  </main>
+</div>
+
+<!-- ============ СЛОИ ПОВЕРХ ============ -->
+<div id="fx-layer"></div>
+<div id="toast-root"></div>
+<div id="modal-root"></div>
+<div id="tutorial-root"></div>
+
+<!-- ============ СКРИПТЫ (порядок важен) ============ -->
+<!-- Ядро -->
+<script src="js/core/utils.js"></script>
+<script src="js/core/audio.js"></script>
+<!-- Данные -->
+<script src="js/data/names.js"></script>
+<script src="js/data/cars.js"></script>
+<script src="js/data/faults.js"></script>
+<script src="js/data/parts.js"></script>
+<script src="js/data/suppliers.js"></script>
+<script src="js/data/upgrades.js"></script>
+<script src="js/data/research.js"></script>
+<script src="js/data/events.js"></script>
+<script src="js/data/missions.js"></script>
+<script src="js/data/achievements.js"></script>
+<!-- Игровая логика -->
+<script src="js/game/state.js"></script>
+<script src="js/core/save.js"></script>
+<script src="js/game/time.js"></script>
+<script src="js/game/economy.js"></script>
+<script src="js/game/inventory.js"></script>
+<script src="js/game/staff.js"></script>
+<script src="js/game/clients.js"></script>
+<script src="js/game/repair.js"></script>
+<script src="js/game/garage.js"></script>
+<script src="js/game/research.js"></script>
+<script src="js/game/missions.js"></script>
+<script src="js/game/achievements.js"></script>
+<script src="js/game/events.js"></script>
+<script src="js/game/contracts.js"></script>
+<script src="js/game/loop.js"></script>
+<!-- Интерфейс -->
+<script src="js/ui/modal.js"></script>
+<script src="js/ui/fx.js"></script>
+<script src="js/ui/charts.js"></script>
+<script src="js/ui/scene.js"></script>
+<script src="js/ui/panels-garage.js"></script>
+<script src="js/ui/panels-business.js"></script>
+<script src="js/ui/panels-meta.js"></script>
+<script src="js/ui/ui.js"></script>
+<script src="js/ui/tutorial.js"></script>
+<!-- Запуск -->
+<script src="js/main.js"></script>
+</body>
+</html>
