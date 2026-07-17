@@ -1,8 +1,10 @@
 /* Service worker: офлайн-кэш для установленной PWA-версии.
-   Работает только по https или localhost — при открытии через file:// не используется. */
+   Стратегия «stale-while-revalidate»: страница мгновенно получает кэш,
+   а свежая версия скачивается фоном и попадает в кэш для следующего
+   запуска. Обновления подтягиваются сами — чистить кэш не нужно. */
 'use strict';
 
-const CACHE = 'ast-v1';
+const CACHE = 'ast-v2';
 const FILES = [
   './',
   './index.html',
@@ -61,7 +63,19 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then((hit) => hit || fetch(e.request))
+    caches.open(CACHE).then(async (cache) => {
+      const hit = await cache.match(e.request);
+      // фоновая ревалидация: тянем свежую версию и обновляем кэш
+      const fresh = fetch(e.request).then((res) => {
+        if (res && res.ok && new URL(e.request.url).origin === location.origin) {
+          cache.put(e.request, res.clone());
+        }
+        return res;
+      }).catch(() => hit);
+      // отдаём кэш мгновенно (офлайн работает), иначе — сеть
+      return hit || fresh;
+    })
   );
 });
