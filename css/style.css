@@ -136,6 +136,7 @@ body {
   display: flex; align-items: center; gap: 7px; padding: 7px 13px;
   background: var(--glass2); border: 1px solid var(--stroke); border-radius: 999px;
   font-weight: 700; font-size: 14px; position: relative;
+  white-space: nowrap; flex: 0 0 auto;
 }
 .hud-ico { font-size: 15px; }
 .hud-money { color: var(--good); }
@@ -544,7 +545,9 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 
 /* парковка и дорога */
 .scene-ground { position: absolute; left: 0; right: 0; top: 56%; bottom: 0; z-index: 2; }
 .parking-row {
-  position: absolute; left: 4%; right: 4%; top: 22px; height: 52px;
+  /* отступы по 170px — резерв под мини-домики построек по краям,
+     иначе на средних экранах слоты наезжали на домики */
+  position: absolute; left: 170px; right: 170px; top: 22px; height: 52px;
   display: flex; gap: 8px; z-index: 3; justify-content: center;
 }
 .park-slot {
@@ -788,6 +791,10 @@ canvas.chart { width: 100%; height: 190px; border-radius: var(--r-sm); }
 /* ============================================================
    ПРОЧЕЕ
    ============================================================ */
+/* длинное название сервиса не должно распирать карточку настроек */
+#tab-settings .card b { word-break: break-word; }
+#tab-settings .row .flex1 { min-width: 0; }
+
 .logo-pick { display: flex; flex-wrap: wrap; gap: 8px; }
 .logo-pick .lp {
   width: 46px; height: 46px; font-size: 24px; display: flex; align-items: center; justify-content: center;
@@ -825,6 +832,12 @@ kbd.key { padding: 2px 7px; border-radius: 6px; background: var(--glass2); borde
 @media (max-width: 1100px) {
   .grid4 { grid-template-columns: repeat(2, 1fr); }
   .grid3 { grid-template-columns: repeat(2, 1fr); }
+  /* планшеты и телефоны боком: чипы скроллятся, а не наезжают на колокольчик */
+  .hud-stats { justify-content: flex-start; overflow-x: auto; scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, #000 90%, transparent);
+    mask-image: linear-gradient(90deg, #000 90%, transparent); }
+  .hud-stats::-webkit-scrollbar { display: none; }
+  .hud-name { max-width: 120px; }
 }
 @media (max-width: 860px) {
   .hud-stats { justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
@@ -876,7 +889,7 @@ kbd.key { padding: 2px 7px; border-radius: 6px; background: var(--glass2); borde
   .bay .car-sprite { width: 52px; height: 22px; }
   .park-slot .car-sprite { width: 46px; height: 19px; }
   .car-sprite { width: 58px; height: 24px; }
-  .parking-row { top: 12px; height: 44px; }
+  .parking-row { top: 12px; height: 44px; left: 4%; right: 4%; }   /* домиков на мобиле нет */
   .scene-road { height: 46px; }
   .road-car { bottom: 8px; }
   .lamp { display: none; }   /* фонари на тесной мобильной сцене выглядят артефактами */
