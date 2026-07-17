@@ -33,7 +33,11 @@ AST.modal = (() => {
         const btn = AST.u.el('button',
           'btn' + (b.primary ? ' primary' : '') + (b.danger ? ' danger' : '') + (b.gold ? ' gold' : ''),
           AST.u.esc(b.label));
-        btn.onclick = () => { close(); if (b.onClick) b.onClick(); };
+        // обработчик ДО закрытия: внутри могут читаться поля из модалки
+        btn.onclick = () => {
+          try { if (b.onClick) b.onClick(); }
+          finally { close(); }
+        };
         actions.appendChild(btn);
       }
       modal.appendChild(actions);

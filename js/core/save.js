@@ -61,19 +61,65 @@ AST.save = (() => {
     location.reload();
   }
 
-  function exportStr() {
-    try { return btoa(unescape(encodeURIComponent(JSON.stringify(AST.state)))); }
-    catch (e) { return ''; }
+  /* --- перекодировка байтов в base64 (частями, чтобы не упасть на больших сейвах) --- */
+  function b64FromBytes(bytes) {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(bin);
+  }
+  function bytesFromB64(b64) {
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
   }
 
-  function importStr(str) {
+  /** Компактный код сохранения (gzip, в ~8 раз короче). Асинхронный */
+  async function exportStr() {
+    const json = JSON.stringify(AST.state);
     try {
-      const parsed = JSON.parse(decodeURIComponent(escape(atob(str.trim()))));
+      if (window.CompressionStream) {
+        const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'));
+        const buf = await new Response(stream).arrayBuffer();
+        return 'AST1.' + b64FromBytes(new Uint8Array(buf));
+      }
+    } catch (e) { /* нет поддержки — обычный формат */ }
+    return btoa(unescape(encodeURIComponent(json)));
+  }
+
+  /** Импорт: понимает и новый сжатый формат, и старый длинный */
+  async function importStr(str) {
+    try {
+      str = String(str).trim().replace(/\s+/g, '');
+      let json;
+      if (str.startsWith('AST1.')) {
+        const ds = new Blob([bytesFromB64(str.slice(5))]).stream()
+          .pipeThrough(new DecompressionStream('gzip'));
+        json = await new Response(ds).text();
+      } else {
+        json = decodeURIComponent(escape(atob(str)));
+      }
+      const parsed = JSON.parse(json);
       if (!parsed || !parsed.meta || !parsed.time) return false;
       localStorage.setItem(KEY, JSON.stringify(AST.u.deepMerge(AST.newState(), parsed)));
       location.reload();
       return true;
     } catch (e) { return false; }
+  }
+
+  /** Скачать сохранение файлом (для пересылки одним вложением) */
+  async function exportFile() {
+    const code = await exportStr();
+    const blob = new Blob([code], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `автосервис-день${AST.state.time.day}.save.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
 
   /** Офлайн-доход: пока игрока не было, сервис «работал вполсилы» */
@@ -91,5 +137,5 @@ AST.save = (() => {
     return { hours, gain };
   }
 
-  return { save, autoTick, hasSave, load, reset, exportStr, importStr, offlineReport, KEY };
+  return { save, autoTick, hasSave, load, reset, exportStr, importStr, exportFile, offlineReport, KEY };
 })();

@@ -628,9 +628,14 @@ AST.panels.settings = function (root) {
           <button class="chip click ${st.autosave ? 'on' : ''}" data-act="togAutosave">${st.autosave ? '✅ Автосохранение: вкл' : '⬜ Автосохранение: выкл'}</button>
           <div class="row wrap">
             <button class="btn small" data-act="saveNow">💾 Сохранить сейчас</button>
-            <button class="btn small" data-act="expSave">📤 Экспорт</button>
-            <button class="btn small" data-act="impSave">📥 Импорт</button>
+            <button class="btn small primary" data-act="expFile" title="Скачает маленький файл — его удобно переслать себе в Telegram одним вложением">📤 Скачать файл</button>
+            <button class="btn small" data-act="impFile" title="Выберите файл сохранения, скачанный на другом устройстве">📥 Загрузить из файла</button>
           </div>
+          <div class="row wrap">
+            <button class="btn tiny ghost" data-act="expSave">Экспорт текстом</button>
+            <button class="btn tiny ghost" data-act="impSave">Импорт из текста</button>
+          </div>
+          <input type="file" id="save-file-input" accept=".txt,.save,text/plain" style="display:none">
           <button class="btn small danger" data-act="resetSave">🗑️ Начать игру заново</button>
         </div>
       </div>
@@ -684,8 +689,28 @@ Object.assign(AST.actions, {
   togAutosave() { AST.state.settings.autosave = !AST.state.settings.autosave; AST.ui.render('settings'); },
   togDaySummary() { AST.state.settings.daySummary = AST.state.settings.daySummary === false; AST.ui.render('settings'); },
   saveNow() { AST.save.save(true); },
-  expSave() {
-    const str = AST.save.exportStr();
+  expFile() {
+    AST.save.exportFile();
+    AST.ui.toast('📤', 'Файл сохранения скачан', 'Перешлите его себе в Telegram, на другом устройстве — «Загрузить из файла»', 'ok');
+  },
+  impFile() {
+    const inp = AST.u.byId('save-file-input');
+    if (!inp) return;
+    inp.value = '';
+    inp.onchange = async () => {
+      const file = inp.files && inp.files[0];
+      if (!file) return;
+      const ok = await AST.modal.confirm('Загрузить сохранение?',
+        `<b>${AST.u.esc(file.name)}</b><br>Текущий прогресс на этом устройстве будет заменён!`);
+      if (!ok) return;
+      const text = await file.text();
+      const loaded = await AST.save.importStr(text);
+      if (!loaded) AST.ui.toast('⚠️', 'Не получилось', 'Файл повреждён или это не сохранение игры', 'err');
+    };
+    inp.click();
+  },
+  async expSave() {
+    const str = await AST.save.exportStr();
     const id = 'exp_' + AST.u.uid();
     AST.modal.show({
       title: '📤 Экспорт сохранения',
@@ -720,9 +745,10 @@ Object.assign(AST.actions, {
       body: `<p class="small muted">Вставьте код сохранения. Текущий прогресс будет заменён!</p>
         <textarea id="${id}" class="input" style="width:100%;height:120px" placeholder="Код сохранения…"></textarea>`,
       buttons: [
-        { label: 'Загрузить', primary: true, onClick: () => {
+        { label: 'Загрузить', primary: true, onClick: async () => {
           const val = (AST.u.byId(id) || {}).value || '';
-          if (!AST.save.importStr(val)) AST.ui.toast('⚠️', 'Не получилось', 'Код повреждён или неполный', 'err');
+          const ok = await AST.save.importStr(val);
+          if (!ok) AST.ui.toast('⚠️', 'Не получилось', 'Код повреждён или неполный', 'err');
         } },
         { label: 'Отмена' },
       ],
