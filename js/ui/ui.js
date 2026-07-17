@@ -65,6 +65,8 @@ AST.ui = (() => {
   let tipTarget = null;
 
   function initTips() {
+    // на сенсорных экранах подсказки выскакивали под пальцем и мешали нажатиям
+    if (window.matchMedia && window.matchMedia('(hover: none)').matches) return;
     tipEl = AST.u.el('div', 'game-tip');
     document.body.appendChild(tipEl);
 

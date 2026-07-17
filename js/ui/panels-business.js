@@ -368,7 +368,7 @@ AST.panels.stock = function (root) {
       </table>
     </div>
 
-    <div class="card ${cartCount ? 'sel' : ''}" style="position:sticky;bottom:8px;z-index:5">
+    <div class="card cart-bar ${cartCount ? 'sel cart-active' : ''}">
       <div class="spread wrap">
         <div>
           <b>🛒 Корзина:</b> ${cartCount} поз. • <b class="accent">${AST.u.fmt(cartCost)}</b>

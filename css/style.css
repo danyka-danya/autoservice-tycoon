@@ -800,6 +800,10 @@ canvas.chart { width: 100%; height: 190px; border-radius: var(--r-sm); }
 .theme-pick .tp { width: 40px; height: 40px; border-radius: 50%; border: 2px solid transparent; transition: all .2s; }
 .theme-pick .tp.on { border-color: #fff; transform: scale(1.12); box-shadow: 0 0 14px rgba(255,255,255,.25); }
 
+/* корзина склада: липнет к низу ТОЛЬКО когда в ней что-то есть,
+   пустая стояла поверх карточек и перекрывала их */
+.cart-bar.cart-active { position: sticky; bottom: 8px; z-index: 5; }
+
 .review-item { display: flex; gap: 10px; align-items: flex-start; }
 .review-stars { color: var(--gold); font-size: 12px; letter-spacing: 1px; white-space: nowrap; }
 
@@ -829,12 +833,28 @@ kbd.key { padding: 2px 7px; border-radius: 6px; background: var(--glass2); borde
   #scene { height: 300px; }
 }
 @media (max-width: 700px) {
-  :root { --hud-h: 56px; }
-  #hud { gap: 8px; padding: 0 10px; }
+  /* HUD в две строки: сверху лого/часы/скорость, ниже — деньги и статы скроллом.
+     Иначе чипы наезжали на колокольчик и часы */
+  :root { --hud-h: 96px; }
+  #hud {
+    height: auto; min-height: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas: "brand time" "stats stats";
+    row-gap: 7px; padding: 8px 10px;
+  }
+  .hud-brand { grid-area: brand; }
+  .hud-time { grid-area: time; justify-content: flex-end; gap: 6px; }
+  .hud-stats {
+    grid-area: stats; justify-content: flex-start;
+    overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap;
+  }
   .hud-brand-col { display: none; }
-  .hud-stat { padding: 6px 10px; font-size: 12.5px; }
+  .hud-stat { padding: 5px 9px; font-size: 12px; flex: 0 0 auto; }
   .hud-daybox { display: none; }
   .hud-clockbox { font-size: 14px; }
+  .bell-btn { width: 34px; height: 34px; font-size: 14px; }
+  .spd-btn { padding: 4px 8px; }
   .grid2, .grid3, .grid4 { grid-template-columns: repeat(2, 1fr); }
   .grid-auto { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .grid-auto-sm { grid-template-columns: repeat(2, minmax(0,1fr)); }
@@ -842,12 +862,14 @@ kbd.key { padding: 2px 7px; border-radius: 6px; background: var(--glass2); borde
   /* вкладки уезжают вниз, как в мобильных играх */
   #tabs {
     position: fixed; left: 0; right: 0; bottom: 0; top: auto; height: auto;
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    padding: 5px 4px calc(5px + env(safe-area-inset-bottom));
     background: var(--bg1); border-top: 1px solid var(--stroke2); border-bottom: none;
     box-shadow: 0 -8px 30px rgba(0,0,0,.35); z-index: 30;
+    gap: 1px;
   }
-  .tab-btn { flex-direction: column; gap: 2px; padding: 6px 9px; font-size: 9px; flex: 1; min-width: 52px; }
-  .tab-ico { font-size: 18px; }
+  .tab-btn { flex-direction: column; gap: 1px; padding: 5px 2px; font-size: 8.5px; flex: 1 1 0; min-width: 0; overflow: hidden; }
+  .tab-btn .tab-txt { display: block; width: 100%; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+  .tab-ico { font-size: 17px; }
   #panels { padding-bottom: 0; }
   #scene { height: 270px; }
   .bay { height: 78px; }
@@ -857,7 +879,7 @@ kbd.key { padding: 2px 7px; border-radius: 6px; background: var(--glass2); borde
   .parking-row { top: 12px; height: 44px; }
   .scene-road { height: 46px; }
   .road-car { bottom: 8px; }
-  .lamp { bottom: 42px; }
+  .lamp { display: none; }   /* фонари на тесной мобильной сцене выглядят артефактами */
   /* на телефоне вместо мини-домиков — компактные чипы в здании */
   .fac-town { display: none; }
   .fac-row { display: flex; }
@@ -866,9 +888,16 @@ kbd.key { padding: 2px 7px; border-radius: 6px; background: var(--glass2); borde
   .modal-actions .btn { min-width: 100px; }
   canvas.chart { height: 150px; }
   #toast-root { right: 8px; left: 8px; max-width: none; }
+  /* графики на всю ширину — 2-в-ряд нечитаемы */
+  .chart-box { grid-column: 1 / -1; }
+  /* кнопки чуть крупнее под палец */
+  .btn.tiny { padding: 6px 10px; font-size: 11.5px; }
+  .btn.small { padding: 8px 13px; }
 }
 @media (max-width: 420px) {
-  .grid2, .grid3, .grid4, .grid-auto { grid-template-columns: 1fr; }
+  .grid2, .grid3, .grid-auto { grid-template-columns: 1fr; }
+  .grid4 { grid-template-columns: repeat(2, minmax(0,1fr)); }   /* плитки статов — 2-в-ряд */
+  .grid4 .tile-val { font-size: 16px; }
   .grid-auto-sm { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .hud-stat { padding: 5px 8px; font-size: 12px; }
   .spd-btn { padding: 4px 7px; }
